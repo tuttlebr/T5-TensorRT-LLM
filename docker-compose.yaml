@@ -1,0 +1,97 @@
+services:
+  trt-llm-backend:
+    build:
+      context: submodules
+      target: release
+      args:
+        - BASE_IMAGE=nvcr.io/nvidia/pytorch
+        - BASE_TAG=23.10-py3
+      dockerfile: docker/Dockerfile.multi
+    image: tensorrt_llm:trt-llm-backend
+
+  triton-backend:
+    build:
+      context: submodules
+      target: release
+      args:
+        - BASE_IMAGE=nvcr.io/nvidia/tritonserver
+        - BASE_TAG=23.10-pyt-python-py3
+      dockerfile: docker/Dockerfile.multi
+    image: tensorrt_llm:triton-backend
+
+  triton-trt-llm:
+    build:
+      context: docker
+      dockerfile: Dockerfile
+      target: release
+      args:
+        - BASE_IMAGE_TAG=tensorrt_llm:triton-backend
+    image: tensorrt_llm:triton-trt-llm
+
+  download:
+    image: tensorrt_llm:trt-llm-backend
+    working_dir: /app/tensorrt_llm/examples/enc_dec
+    volumes:
+      - type: bind
+        source: TensorRT-LLM/examples/enc_dec/
+        target: /app/tensorrt_llm/examples/enc_dec/
+    entrypoint: ["python3", "download.py"]
+
+  build:
+    image: tensorrt_llm:trt-llm-backend
+    working_dir: /app/tensorrt_llm/examples/enc_dec
+    runtime: nvidia
+    volumes:
+      - type: bind
+        source: TensorRT-LLM/examples/enc_dec/
+        target: /app/tensorrt_llm/examples/enc_dec/
+    entrypoint:
+      [
+        "python3",
+        "build.py",
+        "--model_dir=./models/",
+        "--use_bert_attention_plugin",
+        "--use_gpt_attention_plugin",
+        "--dtype=float16",
+        "--max_beam_width=3",
+      ]
+
+  triton-server:
+    image: tensorrt_llm:triton-backend
+    runtime: nvidia
+    environment:
+      - PYTHONPATH=/models/t5/1
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8002:8002
+    volumes:
+      - type: bind
+        source: TensorRT-LLM/examples/enc_dec/trt_engines
+        target: /trt_engines
+      - type: bind
+        source: models
+        target: /models
+    entrypoint:
+      ["tritonserver", "--model-repository=/models", "--log-verbose=1"]
+
+  triton-client:
+    build:
+      context: docker
+      target: devel
+      args:
+        - BASE_IMAGE_TAG=nvcr.io/nvidia/tritonserver:23.10-py3-sdk
+    image: tensorrt_llm:triton-trt-llm-client
+    ports:
+      - 8888:8888
+    entrypoint:
+      [
+        "jupyter",
+        "lab",
+        "--ServerApp.ip=0.0.0.0",
+        "--ServerApp.port=8888",
+        "--ServerApp.allow_root=True",
+        "--ServerApp.token=''",
+        "--ServerApp.password=''",
+        "--no-browser",
+      ]

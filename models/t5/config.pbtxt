@@ -1,0 +1,37 @@
+name: "t5"
+backend: "python"
+max_batch_size: 8
+
+instance_group [
+    {
+        count: 1
+        kind: KIND_GPU
+    }
+]
+
+
+input [
+    {
+        name: "input_text"
+        data_type: TYPE_STRING
+        dims: [ -1 ]
+    },
+    {
+        name: "max_new_tokens"
+        data_type: TYPE_INT64
+        dims: [ -1 ]
+    },
+    {
+        name: "num_beams"
+        data_type: TYPE_INT64
+        dims: [ -1 ]
+      }
+]
+
+output [
+    {
+        name: "output_text"
+        data_type: TYPE_STRING
+        dims: [ -1 ]
+    }
+]

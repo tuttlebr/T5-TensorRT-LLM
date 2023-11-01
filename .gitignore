@@ -1,0 +1,7 @@
+cleanup.sh
+.ipynb_checkpoints
+__pycache__
+*.pyc
+*.pyo$
+*.Trash-0
+*.ckpt
