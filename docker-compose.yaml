@@ -1,7 +1,7 @@
 services:
   trt-llm-backend:
     build:
-      context: submodules
+      context: TensorRT-LLM
       target: release
       args:
         - BASE_IMAGE=nvcr.io/nvidia/pytorch
@@ -11,7 +11,7 @@ services:
 
   triton-backend:
     build:
-      context: submodules
+      context: TensorRT-LLM
       target: release
       args:
         - BASE_IMAGE=nvcr.io/nvidia/tritonserver
@@ -65,7 +65,12 @@ services:
       - 8000:8000
       - 8001:8001
       - 8002:8002
+    env_file:
+      - .env
     volumes:
+      - type: bind
+        source: cache
+        target: ${TRANSFORMERS_CACHE}
       - type: bind
         source: TensorRT-LLM/examples/enc_dec/trt_engines
         target: /trt_engines
@@ -73,7 +78,7 @@ services:
         source: models
         target: /models
     entrypoint:
-      ["tritonserver", "--model-repository=/models", "--log-verbose=1"]
+      ["tritonserver", "--model-repository=/models", "--log-verbose=0"]
 
   triton-client:
     build:
@@ -84,6 +89,13 @@ services:
     image: tensorrt_llm:triton-trt-llm-client
     ports:
       - 8888:8888
+    env_file:
+      - .env
+    working_dir: /workspace
+    volumes:
+      - type: bind
+        source: workspace
+        target: /workspace
     entrypoint:
       [
         "jupyter",

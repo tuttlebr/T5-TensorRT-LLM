@@ -5,3 +5,5 @@ __pycache__
 *.pyo$
 *.Trash-0
 *.ckpt
+cache/version.txt
+cache/models--*
